@@ -10,15 +10,24 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+type Circle struct {
+	x float32
+	y float32
+	r float32
+}
+
 type Game struct{
 	ballY float32
+	ballR float32
 	ballSpeed float32
 	dropping bool
+	fieldBall []Circle
 }
 
 func NewGame() *Game {
 	return &Game{
 		ballY: 50,
+		ballR: 5,
 		ballSpeed: 0,
 		dropping: false,
 	}
@@ -30,6 +39,11 @@ func (g *Game) Update() error {
 		g.ballSpeed += 0.2
 
 		if g.ballY > 400 {
+			g.fieldBall = append(g.fieldBall, Circle{
+				x: 300.0,
+				y: g.ballY,
+				r: 5.0,
+			})
 			g.ballY = 50
 			g.ballSpeed = 0
 			g.dropping = false
@@ -56,7 +70,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
 
 	// ball
-	vector.StrokeCircle(screen, (width/2), g.ballY, 5, 1, color.RGBA{255, 0, 0, 255}, false)
+	vector.StrokeCircle(screen, (width/2), g.ballY, g.ballR, 1, color.RGBA{255, 0, 0, 255}, false)
+
+	// field ball
+	for _, ball := range g.fieldBall {
+		vector.StrokeCircle(screen, ball.x, ball.y, ball.r, 1, color.RGBA{0, 0, 255, 255}, false)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
