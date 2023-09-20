@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 
@@ -13,6 +14,14 @@ type Game struct{
 	ballY float32
 	ballSpeed float32
 	dropping bool
+}
+
+func NewGame() *Game {
+	return &Game{
+		ballY: 50,
+		ballSpeed: 0,
+		dropping: false,
+	}
 }
 
 func (g *Game) Update() error {
@@ -30,7 +39,12 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Hello, World!")
+	yText := fmt.Sprintf("BallY: %.2f, Dropping: %t", g.ballY, g.dropping)
+	ebitenutil.DebugPrint(screen, yText)
+
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		g.dropping = true
+	}
 
 	var width float32 = 600.0
 	// var height float32 = 600.0
@@ -45,13 +59,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	vector.StrokeCircle(screen, (width/2), g.ballY, 5, 1, color.RGBA{255, 0, 0, 255}, false)
 }
 
-func (g *Game) OnKeyDown(key ebiten.Key) error {
-	if key == ebiten.KeySpace {
-		g.dropping = true
-	}
-	return nil
-}
-
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return 600, 450
 }
@@ -59,7 +66,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func main() {
 	ebiten.SetWindowSize(1000, 750)
 	ebiten.SetWindowTitle("Hello, World!")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	game := NewGame()
+	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
 }
