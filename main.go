@@ -18,6 +18,7 @@ type Circle struct {
 }
 
 type Game struct{
+	ballX float32
 	ballY float32
 	ballR float32
 	ballSpeed float32
@@ -44,6 +45,7 @@ func PickRandomRadius() float32 {
 
 func NewGame() *Game {
 	return &Game{
+		ballX: 300,
 		ballY: 50,
 		ballR: PickRandomRadius(),
 		ballSpeed: 0,
@@ -58,10 +60,11 @@ func (g *Game) Update() error {
 
 		if g.ballY > 400 {
 			g.fieldBall = append(g.fieldBall, Circle{
-				x: 300.0,
+				x: g.ballX,
 				y: g.ballY,
 				r: g.ballR,
 			})
+			g.ballX = 300
 			g.ballY = 50
 			g.ballR = PickRandomRadius()
 			g.ballSpeed = 0
@@ -79,11 +82,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.dropping = true
 	}
 
+	if !g.dropping {
+		if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+			g.ballX -= 3
+		} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+			g.ballX += 3
+		}
+	}
+
 	// stage
 	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
 
 	// ball
-	vector.StrokeCircle(screen, (width/2), g.ballY, g.ballR, 1, color.RGBA{255, 0, 0, 255}, false)
+	vector.StrokeCircle(screen, g.ballX, g.ballY, g.ballR, 1, color.RGBA{255, 0, 0, 255}, false)
 
 	// field ball
 	for _, ball := range g.fieldBall {
