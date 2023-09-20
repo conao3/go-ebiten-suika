@@ -24,6 +24,14 @@ type Game struct{
 	fieldBall []Circle
 }
 
+const (
+	width float32 = 600.0
+	// var height float32 = 600.0
+
+	bin_w float32 = 250.0
+	bin_h float32 = 300.0
+)
+
 func NewGame() *Game {
 	return &Game{
 		ballY: 50,
@@ -59,12 +67,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		g.dropping = true
 	}
-
-	var width float32 = 600.0
-	// var height float32 = 600.0
-
-	var bin_w float32 = 250.0
-	var bin_h float32 = 300.0
 
 	// stage
 	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
