@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -18,12 +19,10 @@ type Circle struct {
 }
 
 type Game struct{
-	ballX float32
-	ballY float32
-	ballR float32
+	ball Circle
 	ballSpeed float32
 	dropping bool
-	fieldBall []Circle
+	fieldBalls []Circle
 }
 
 const (
@@ -43,11 +42,32 @@ func PickRandomRadius() float32 {
 	return lstR[inx]
 }
 
+func Colision(ball Circle, bottom float32, fieldBalls []Circle) bool {
+	if ball.y + ball.r > bottom {
+		return true
+	}
+	for _, elm := range fieldBalls {
+		distX := float64(ball.x - elm.x)
+		distY := float64(ball.y - elm.y)
+		distance := math.Sqrt(math.Pow(distX, 2) + math.Pow(distY, 2))
+		if float32(distance) < ball.r + elm.r {
+			return true
+		}
+	}
+	return false
+}
+
+func NewCircle() Circle {
+	return Circle{
+		x: 300,
+		y: 50,
+		r: PickRandomRadius(),
+	}
+}
+
 func NewGame() *Game {
 	return &Game{
-		ballX: 300,
-		ballY: 50,
-		ballR: PickRandomRadius(),
+		ball: NewCircle(),
 		ballSpeed: 0,
 		dropping: false,
 	}
@@ -55,18 +75,16 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	if g.dropping {
-		g.ballY += g.ballSpeed
+		g.ball.y += g.ballSpeed
 		g.ballSpeed += 0.2
 
-		if g.ballY > 400 {
-			g.fieldBall = append(g.fieldBall, Circle{
-				x: g.ballX,
-				y: g.ballY,
-				r: g.ballR,
+		if Colision(g.ball, 100 + bin_h, g.fieldBalls) {
+			g.fieldBalls = append(g.fieldBalls, Circle{
+				x: g.ball.x,
+				y: g.ball.y,
+				r: g.ball.r,
 			})
-			g.ballX = 300
-			g.ballY = 50
-			g.ballR = PickRandomRadius()
+			g.ball = NewCircle()
 			g.ballSpeed = 0
 			g.dropping = false
 		}
@@ -75,7 +93,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	yText := fmt.Sprintf("BallY: %.2f, Dropping: %t", g.ballY, g.dropping)
+	yText := fmt.Sprintf("Ball.y: %.2f, Dropping: %t", g.ball.y, g.dropping)
 	ebitenutil.DebugPrint(screen, yText)
 
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
@@ -84,9 +102,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	if !g.dropping {
 		if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-			g.ballX -= 3
+			g.ball.x -= 3
 		} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-			g.ballX += 3
+			g.ball.x += 3
 		}
 	}
 
@@ -94,10 +112,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
 
 	// ball
-	vector.StrokeCircle(screen, g.ballX, g.ballY, g.ballR, 1, color.RGBA{255, 0, 0, 255}, false)
+	vector.StrokeCircle(screen, g.ball.x, g.ball.y, g.ball.r, 1, color.RGBA{255, 0, 0, 255}, false)
 
 	// field ball
-	for _, ball := range g.fieldBall {
+	for _, ball := range g.fieldBalls {
 		vector.StrokeCircle(screen, ball.x, ball.y, ball.r, 1, color.RGBA{0, 0, 255, 255}, false)
 	}
 }
