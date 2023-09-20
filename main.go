@@ -9,9 +9,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-type Game struct{}
+type Game struct{
+	ballY float32
+	ballSpeed float32
+}
 
 func (g *Game) Update() error {
+	g.ballY += g.ballSpeed
+	g.ballSpeed += 0.2
+
+	if g.ballY > 400 {
+		g.ballY = 50
+		g.ballSpeed = 0
+	}
 	return nil
 }
 
@@ -21,10 +31,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	var width float32 = 600.0
 	// var height float32 = 600.0
 
-	var bin_w float32 = 300.0
-	var bin_h float32 = 400.0
+	var bin_w float32 = 250.0
+	var bin_h float32 = 300.0
 
-	vector.StrokeRect(screen, (width/2)-(bin_w/2), 25, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
+	// stage
+	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
+
+	// ball
+	vector.StrokeCircle(screen, (width/2), g.ballY, 5, 1, color.RGBA{255, 0, 0, 255}, false)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
