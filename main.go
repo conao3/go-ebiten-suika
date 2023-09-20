@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -32,10 +33,19 @@ const (
 	bin_h float32 = 300.0
 )
 
+var lstR = []float32{
+	5.0, 10.0, 15.0, 20.0, 25.0, 30.0,
+}
+
+func PickRandomRadius() float32 {
+	inx := rand.Intn(len(lstR))
+	return lstR[inx]
+}
+
 func NewGame() *Game {
 	return &Game{
 		ballY: 50,
-		ballR: 5,
+		ballR: PickRandomRadius(),
 		ballSpeed: 0,
 		dropping: false,
 	}
@@ -50,9 +60,10 @@ func (g *Game) Update() error {
 			g.fieldBall = append(g.fieldBall, Circle{
 				x: 300.0,
 				y: g.ballY,
-				r: 5.0,
+				r: g.ballR,
 			})
 			g.ballY = 50
+			g.ballR = PickRandomRadius()
 			g.ballSpeed = 0
 			g.dropping = false
 		}
