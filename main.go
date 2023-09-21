@@ -18,6 +18,13 @@ type Circle struct {
 	r float32
 }
 
+type Rect struct {
+	x float32
+	y float32
+	w float32
+	h float32
+}
+
 type Game struct{
 	ball Circle
 	ballSpeed float32
@@ -36,25 +43,102 @@ const (
 var lstR = []float32{
 	5.0, 10.0, 15.0, 20.0, 25.0, 30.0,
 }
+var binRect = Rect{
+	x: (width/2)-(bin_w/2),
+	y: 100,
+	w: bin_w,
+	h: bin_h,
+}
 
 func PickRandomRadius() float32 {
 	inx := rand.Intn(len(lstR))
 	return lstR[inx]
 }
 
-func Colision(ball Circle, bottom float32, fieldBalls []Circle) bool {
-	if ball.y + ball.r > bottom {
+func isCollisionBall(ball1, ball2 Circle) bool {
+	distX := float64(ball1.x - ball2.x)
+	distY := float64(ball1.y - ball2.y)
+	distance := math.Sqrt(math.Pow(distX, 2) + math.Pow(distY, 2))
+	if float32(distance) < ball1.r + ball2.r {
+		return true
+	}
+	return false
+}
+
+func isCollisionBallBin(ball Circle, binRect Rect) bool {
+	if ball.y + ball.r > binRect.y + binRect.h {
+		return true
+	}
+	return false
+}
+
+func isCollisionFieldBall(ball Circle, inx int, fieldBalls []Circle) bool {
+	for i := range fieldBalls {
+		if i != inx {
+			if isCollisionBall(ball, fieldBalls[i]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func Colision(ball Circle, binRect Rect, fieldBalls []Circle) bool {
+	if isCollisionBallBin(ball, binRect) {
 		return true
 	}
 	for _, elm := range fieldBalls {
-		distX := float64(ball.x - elm.x)
-		distY := float64(ball.y - elm.y)
-		distance := math.Sqrt(math.Pow(distX, 2) + math.Pow(distY, 2))
-		if float32(distance) < ball.r + elm.r {
+		if isCollisionBall(ball, elm) {
 			return true
 		}
 	}
 	return false
+}
+
+func UpdateFieldBalls(binRect Rect, fieldBalls *[]Circle) {
+	// drop ball if no collision
+	for i := range *fieldBalls {
+		attemptX := (*fieldBalls)[i].x
+		attemptY := (*fieldBalls)[i].y + 1
+		if !(
+			isCollisionFieldBall(Circle{attemptX, attemptY, (*fieldBalls)[i].r}, i, *fieldBalls) ||
+			isCollisionBallBin(Circle{attemptX, attemptY, (*fieldBalls)[i].r}, binRect)) {
+			(*fieldBalls)[i].y = attemptY
+		}
+	}
+
+	// ensure no collision between field balls
+	for i := range *fieldBalls {
+		for j := range *fieldBalls {
+			if i != j {
+				distX := float64((*fieldBalls)[j].x - (*fieldBalls)[i].x)
+				distY := float64((*fieldBalls)[j].y - (*fieldBalls)[i].y)
+				distance := math.Sqrt(math.Pow(distX, 2) + math.Pow(distY, 2))
+				expectedDistance := float64((*fieldBalls)[i].r + (*fieldBalls)[j].r)
+				if float32(distance) < float32(expectedDistance) {
+
+					(*fieldBalls)[i].x += float32(distX) / float32(distance) * float32(expectedDistance - distance)
+					(*fieldBalls)[i].y += float32(distY) / float32(distance) * float32(expectedDistance - distance)
+				}
+			}
+		}
+	}
+
+	// ensure no collision between field balls and bin
+	for i := range *fieldBalls {
+		left := (*fieldBalls)[i].x - (*fieldBalls)[i].r
+		right := (*fieldBalls)[i].x + (*fieldBalls)[i].r
+		bottom := (*fieldBalls)[i].y + (*fieldBalls)[i].r
+		if left < binRect.x {
+			(*fieldBalls)[i].x += binRect.x - left
+		}
+		if right > binRect.x + binRect.w {
+			(*fieldBalls)[i].x -= right - (binRect.x + binRect.w)
+		}
+		if bottom > binRect.y + binRect.h {
+			(*fieldBalls)[i].y -= bottom - (binRect.y + binRect.h)
+		}
+	}
 }
 
 func NewCircle() Circle {
@@ -78,7 +162,7 @@ func (g *Game) Update() error {
 		g.ball.y += g.ballSpeed
 		g.ballSpeed += 0.2
 
-		if Colision(g.ball, 100 + bin_h, g.fieldBalls) {
+		if Colision(g.ball, binRect, g.fieldBalls) {
 			g.fieldBalls = append(g.fieldBalls, Circle{
 				x: g.ball.x,
 				y: g.ball.y,
@@ -89,6 +173,7 @@ func (g *Game) Update() error {
 			g.dropping = false
 		}
 	}
+	UpdateFieldBalls(binRect, &g.fieldBalls)
 	return nil
 }
 
@@ -109,7 +194,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// stage
-	vector.StrokeRect(screen, (width/2)-(bin_w/2), 100, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
+	vector.StrokeRect(screen, binRect.x, binRect.y, binRect.w, binRect.h, 1, color.RGBA{0, 255, 0, 255}, false)
 
 	// ball
 	vector.StrokeCircle(screen, g.ball.x, g.ball.y, g.ball.r, 1, color.RGBA{255, 0, 0, 255}, false)
