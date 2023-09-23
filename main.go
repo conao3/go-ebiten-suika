@@ -18,11 +18,6 @@ type Vector struct {
 	y float32
 }
 
-type StaticVector struct {
-	p Vector  // position
-	v Vector  // velocity
-}
-
 type Ball struct {
 	p Vector  // position
 	v Vector  // velocity
@@ -30,10 +25,9 @@ type Ball struct {
 }
 
 type Rect struct {
-	top StaticVector
-	right StaticVector
-	bottom StaticVector
-	left StaticVector
+	p Vector  // position
+	w float32  // width
+	h float32  // height
 }
 
 type Game struct{
@@ -60,46 +54,12 @@ var gravity = Vector{
 }
 
 var binRect = Rect{
-	top: StaticVector{
-		p: Vector{
-			x: (width/2)-(bin_w/2),
-			y: 80,
-		},
-		v: Vector{
-			x: (width/2)+(bin_w/2),
-			y: 80,
-		},
+	p: Vector {
+		x: (width/2)-(bin_w/2),
+		y: 80,
 	},
-	right: StaticVector{
-		p: Vector{
-			x: (width/2)+(bin_w/2),
-			y: 80,
-		},
-		v: Vector{
-			x: (width/2)+(bin_w/2),
-			y: 80+bin_h,
-		},
-	},
-	bottom: StaticVector{
-		p: Vector{
-			x: (width/2)+(bin_w/2),
-			y: 80+bin_h,
-		},
-		v: Vector{
-			x: (width/2)-(bin_w/2),
-			y: 80+bin_h,
-		},
-	},
-	left: StaticVector{
-		p: Vector{
-			x: (width/2)-(bin_w/2),
-			y: 80+bin_h,
-		},
-		v: Vector{
-			x: (width/2)-(bin_w/2),
-			y: 80,
-		},
-	},
+	w: bin_w,
+	h: bin_h,
 }
 
 func (v *Vector) Minus() {
@@ -135,7 +95,29 @@ func (v *Vector) Dot(v2 Vector) float32 {
 }
 
 func (v *Vector) Cross(v2 Vector) float32 {
-	return VectorLength(*v)*VectorLength(v2)*float32(math.Sin(float64(VectorAngle(v2)-VectorAngle(*v))))
+	return v.x*v2.y - v.y*v2.x
+}
+
+func (v *Vector) AddScalar(v2 float32) {
+	v.x += v2
+	v.y += v2
+}
+
+func (v *Vector) SubScalar(v2 float32) {
+	v.AddScalar(-v2)
+}
+
+func (v *Vector) MulScalar(v2 float32) {
+	v.x *= v2
+	v.y *= v2
+}
+
+func (v *Vector) DivScalar(v2 float32) {
+	v.MulScalar(1/v2)
+}
+
+func (v *Vector) Normalize() {
+	v.DivScalar(v.Length())
 }
 
 func VectorMinus(v Vector) Vector {
@@ -147,9 +129,9 @@ func VectorMinus(v Vector) Vector {
 
 func VectorLength(v Vector) float32 {
 	if v.x == 0 {
-		return v.y
+		return float32(math.Abs(float64(v.y)))
 	} else if v.y == 0 {
-		return v.x
+		return float32(math.Abs(float64(v.x)))
 	}
 
 	return float32(math.Sqrt(float64(v.x*v.x + v.y*v.y)))
@@ -175,7 +157,33 @@ func VectorDot(v1 Vector, v2 Vector) float32 {
 }
 
 func VectorCross(v1 Vector, v2 Vector) float32 {
-	return VectorLength(v1)*VectorLength(v2)*float32(math.Sin(float64(VectorAngle(v2)-VectorAngle(v1))))
+	return v1.x*v2.y - v1.y*v2.x
+}
+
+func VectorAddScalar(v Vector, v2 float32) Vector {
+	return Vector{
+		x: v.x + v2,
+		y: v.y + v2,
+	}
+}
+
+func VectorSubScalar(v Vector, v2 float32) Vector {
+	return VectorAddScalar(v, -v2)
+}
+
+func VectorMulScalar(v Vector, v2 float32) Vector {
+	return Vector{
+		x: v.x * v2,
+		y: v.y * v2,
+	}
+}
+
+func VectorDivScalar(v Vector, v2 float32) Vector {
+	return VectorMulScalar(v, 1/v2)
+}
+
+func VectorNormalize(v Vector) Vector {
+	return VectorDivScalar(v, VectorLength(v))
 }
 
 func PickRandomRadius() float32 {
@@ -207,7 +215,7 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustReleased(ebiten.KeySpace) {
 		g.fieldBalls = append(g.fieldBalls, g.ball)
 		g.ball = NewBall()
-		g.ball.p.x = g.fieldBalls[len(g.fieldBalls)-1].p.x
+		g.ball.p.x = g.fieldBalls[len(g.fieldBalls)-1].p.x + (rand.Float32()-0.5)
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
@@ -233,8 +241,29 @@ func (g *Game) Update() error {
 		g.fieldBalls[i].p.Add(g.fieldBalls[i].v)
 	}
 	for i := range g.fieldBalls {
-		if g.fieldBalls[i].p.y + g.fieldBalls[i].r > binRect.bottom.p.y {
-			g.fieldBalls[i].p.y = binRect.bottom.p.y - g.fieldBalls[i].r
+		for j := range g.fieldBalls {
+			if i != j {
+				d := VectorSub(g.fieldBalls[i].p, g.fieldBalls[j].p)
+				dl := VectorLength(d)
+				r := g.fieldBalls[i].r + g.fieldBalls[j].r
+				if dl < r {
+					diff := r - dl
+					dn := VectorNormalize(d)
+					g.fieldBalls[i].p.Add(VectorMulScalar(dn, diff))
+					g.fieldBalls[j].p.Sub(VectorMulScalar(dn, diff))
+
+					vDiff := VectorSub(g.fieldBalls[i].v, g.fieldBalls[j].v)
+					A := VectorMulScalar(dn, VectorDot(vDiff, dn) * 0.25)
+					g.fieldBalls[i].v.Sub(A)
+					g.fieldBalls[j].v.Add(A)
+				}
+			}
+		}
+	}
+	for i := range g.fieldBalls {
+		bin_bottom := binRect.p.y + binRect.h
+		if g.fieldBalls[i].p.y + g.fieldBalls[i].r > bin_bottom {
+			g.fieldBalls[i].p.y = bin_bottom - g.fieldBalls[i].r
 			g.fieldBalls[i].v.y *= -1 * 0.3
 		}
 	}
@@ -248,13 +277,17 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if (len(g.fieldBalls) > 0) {
-		yText := fmt.Sprintf("y: %f, length: %f", g.fieldBalls[0].p.y, g.fieldBalls[0].v.Length())
+	// if (len(g.fieldBalls) >= 1) {
+	// 	yText := fmt.Sprintf("y: %f, length: %f", g.fieldBalls[0].p.y, g.fieldBalls[0].v.Length())
+	// 	ebitenutil.DebugPrint(screen, yText)
+	// }
+	if (len(g.fieldBalls) >= 2) {
+		yText := fmt.Sprintf("length: %f, r1+r2: %f", VectorLength(VectorSub(g.fieldBalls[0].p, g.fieldBalls[1].p)), g.fieldBalls[0].r + g.fieldBalls[1].r)
 		ebitenutil.DebugPrint(screen, yText)
 	}
 
 	// stage
-	vector.StrokeRect(screen, binRect.top.p.x, binRect.top.p.y, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
+	vector.StrokeRect(screen, binRect.p.x, binRect.p.y, bin_w, bin_h, 1, color.RGBA{0, 255, 0, 255}, false)
 
 	// ball
 	vector.StrokeCircle(screen, g.ball.p.x, g.ball.p.y, g.ball.r, 1, color.RGBA{255, 0, 0, 255}, false)
