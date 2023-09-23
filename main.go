@@ -9,6 +9,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -38,7 +39,6 @@ type Rect struct {
 type Game struct{
 	ball Ball
 	fieldBalls []Ball
-	PressingSpace bool
 	BallHorizontalV float32
 }
 
@@ -204,6 +204,28 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
+	if inpututil.IsKeyJustReleased(ebiten.KeySpace) {
+		g.fieldBalls = append(g.fieldBalls, g.ball)
+		g.ball = NewBall()
+		g.ball.p.x = g.fieldBalls[len(g.fieldBalls)-1].p.x
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		if g.BallHorizontalV > 0 {
+			g.BallHorizontalV = 0
+		}
+		g.BallHorizontalV -= 0.3
+		g.ball.p.x += g.BallHorizontalV
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		if g.BallHorizontalV < 0 {
+			g.BallHorizontalV = 0
+		}
+		g.BallHorizontalV += 0.3
+		g.ball.p.x += g.BallHorizontalV
+	} else {
+		g.BallHorizontalV = 0
+	}
+
 	for i := range g.fieldBalls {
 		g.fieldBalls[i].v.Add(gravity)
 	}
@@ -229,32 +251,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if (len(g.fieldBalls) > 0) {
 		yText := fmt.Sprintf("y: %f, length: %f", g.fieldBalls[0].p.y, g.fieldBalls[0].v.Length())
 		ebitenutil.DebugPrint(screen, yText)
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		g.PressingSpace = true
-	}
-	if !ebiten.IsKeyPressed(ebiten.KeySpace) && g.PressingSpace {
-		g.PressingSpace = false
-		g.fieldBalls = append(g.fieldBalls, g.ball)
-		g.ball = NewBall()
-		g.ball.p.x = g.fieldBalls[len(g.fieldBalls)-1].p.x
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		if g.BallHorizontalV > 0 {
-			g.BallHorizontalV = 0
-		}
-		g.BallHorizontalV -= 0.3
-		g.ball.p.x += g.BallHorizontalV
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		if g.BallHorizontalV < 0 {
-			g.BallHorizontalV = 0
-		}
-		g.BallHorizontalV += 0.3
-		g.ball.p.x += g.BallHorizontalV
-	} else {
-		g.BallHorizontalV = 0
 	}
 
 	// stage
