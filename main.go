@@ -39,6 +39,7 @@ type Game struct{
 	ball Ball
 	fieldBalls []Ball
 	PressingSpace bool
+	BallHorizontalV float32
 }
 
 const (
@@ -237,6 +238,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.PressingSpace = false
 		g.fieldBalls = append(g.fieldBalls, g.ball)
 		g.ball = NewBall()
+		g.ball.p.x = g.fieldBalls[len(g.fieldBalls)-1].p.x
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		if g.BallHorizontalV > 0 {
+			g.BallHorizontalV = 0
+		}
+		g.BallHorizontalV -= 0.3
+		g.ball.p.x += g.BallHorizontalV
+	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		if g.BallHorizontalV < 0 {
+			g.BallHorizontalV = 0
+		}
+		g.BallHorizontalV += 0.3
+		g.ball.p.x += g.BallHorizontalV
+	} else {
+		g.BallHorizontalV = 0
 	}
 
 	// stage
