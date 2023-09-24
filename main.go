@@ -55,7 +55,7 @@ var lstR = []float32{
 
 var gravity = Vector{
 	x: 0,
-	y: 0.5,
+	y: 0.4,
 }
 
 var binRect = Rect{
@@ -316,8 +316,9 @@ func (g *Game) Update() error {
 			}
 		}
 	}
+
 	for i := range g.fieldBalls {
-		if g.fieldBalls[i].v.Length() < 0.5 {
+		if g.fieldBalls[i].v.Length() < 0.35 {
 			g.fieldBalls[i].v.x = 0
 			g.fieldBalls[i].v.y = 0
 		}
