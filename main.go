@@ -266,73 +266,52 @@ func (g *Game) Update() error {
 		}
 	}
 	lines := []StaticVector{
-		// {
-		// 	p: Vector{
-		// 		x: binRect.p.x + binRect.w,
-		// 		y: binRect.p.y,
-		// 	},
-		// 	v: Vector{
-		// 		x: 0,
-		// 		y: binRect.h,
-		// 	},
-		// },
 		{
 			p: Vector{
 				x: binRect.p.x + binRect.w,
 				y: binRect.p.y + binRect.h,
 			},
 			v: Vector{
-				x: -binRect.w,
+				x: 0,
+				y: -binRect.h,
+			},
+		},
+		{
+			p: Vector{
+				x: binRect.p.x,
+				y: binRect.p.y + binRect.h,
+			},
+			v: Vector{
+				x: binRect.w,
 				y: 0,
 			},
 		},
-		// {
-		// 	p: Vector{
-		// 		x: binRect.p.x,
-		// 		y: binRect.p.y + binRect.h,
-		// 	},
-		// 	v: Vector{
-		// 		x: 0,
-		// 		y: -binRect.h,
-		// 	},
-		// },
+		{
+			p: Vector{
+				x: binRect.p.x,
+				y: binRect.p.y,
+			},
+			v: Vector{
+				x: 0,
+				y: binRect.h,
+			},
+		},
 	}
 	for i := range g.fieldBalls {
 		for _, line := range lines {
-			// vn := VectorNormalize(line.v)
-			// h := VectorAdd(line.p, VectorMulScalar(vn, VectorDot(VectorSub(g.fieldBalls[i].p, line.p), vn)))
-			// d := VectorSub(g.fieldBalls[i].p, h)
-			// dn := VectorNormalize(d)
-			// // cp := VectorCross(VectorSub(g.fieldBalls[i].p, line.p), line.v)
-			// // if cp < 0 {
-			// // 	dn.Minus()
-			// // }
-			// ch := VectorSub(g.fieldBalls[i].p, VectorMulScalar(dn, g.fieldBalls[i].r))
-			// c := VectorCross(VectorSub(line.p, ch), line.v)
-			// if i == len(g.fieldBalls)-1 {
-			// 	fmt.Printf("dn: %f, c: %f, p: %f, ch: %f\n", dn, c, g.fieldBalls[i].p, ch)
-			// }
-			// if c < 0 {
-			// 	// if i == len(g.fieldBalls)-1 {
-			// 	// 	fmt.Printf("n: %f, h: %f, d: %f, dn: %f, diff: %f\n", vn, h, d, dn, VectorMulScalar(dn, (VectorLength(d) - g.fieldBalls[i].r)*-1))
-			// 	// }
-			// 	chn := VectorNormalize(ch)
-			// 	g.fieldBalls[i].p.Add(VectorMulScalar(chn, VectorLength(ch)))// + g.fieldBalls[i].r))
-			// 	g.fieldBalls[i].v.Sub(VectorMulScalar(chn, VectorDot(g.fieldBalls[i].v, chn)*1.4))
-			// }
 			vn := VectorNormalize(line.v)
 			h := VectorAdd(line.p, VectorMulScalar(vn, VectorDot(VectorSub(g.fieldBalls[i].p, line.p), vn)))
 			d := VectorSub(h, g.fieldBalls[i].p)
 			dn := VectorNormalize(d)
-			c := VectorCross(VectorSub(g.fieldBalls[i].p, line.p), line.v)
-			if i == len(g.fieldBalls)-1 {
-				fmt.Printf("vn: %f, h: %f, d: %f, dn: %f, c: %f\n", vn, h, d, dn, c)
-			}
-			if c > 0 {
-				// if i == len(g.fieldBalls)-1 {
-				// 	fmt.Printf("n: %f, h: %f, d: %f, dn: %f, diff: %f\n", vn, h, d, dn, VectorMulScalar(dn, (VectorLength(d) - g.fieldBalls[i].r)*-1))
-				// }
-				g.fieldBalls[i].p.Sub(VectorMulScalar(dn, VectorLength(d) - g.fieldBalls[i].r))
+			pr := VectorAdd(g.fieldBalls[i].p, VectorMulScalar(dn, g.fieldBalls[i].r))
+			c := VectorCross(VectorSub(pr, line.p), line.v)
+			cp := VectorCross(VectorSub(g.fieldBalls[i].p, line.p), line.v)
+			if c < 0 {
+				if cp > 0 {
+					g.fieldBalls[i].p.Sub(VectorMulScalar(dn, g.fieldBalls[i].r - VectorLength(d)))
+				} else {
+					g.fieldBalls[i].p.Sub(VectorMulScalar(dn, (g.fieldBalls[i].r + VectorLength(d))*-1))
+				}
 				g.fieldBalls[i].v.Sub(VectorMulScalar(dn, VectorDot(g.fieldBalls[i].v, dn)*1.4))
 			}
 		}
