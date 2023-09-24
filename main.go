@@ -18,6 +18,11 @@ type Vector struct {
 	y float32
 }
 
+type StaticVector struct {
+	p Vector  // position
+	v Vector  // vector
+}
+
 type Ball struct {
 	p Vector  // position
 	v Vector  // velocity
@@ -260,15 +265,55 @@ func (g *Game) Update() error {
 			}
 		}
 	}
+	lines := []StaticVector{
+		{
+			p: Vector{
+				x: binRect.p.x + binRect.w,
+				y: binRect.p.y,
+			},
+			v: Vector{
+				x: 0,
+				y: binRect.h,
+			},
+		},
+		{
+			p: Vector{
+				x: binRect.p.x + binRect.w,
+				y: binRect.p.y + binRect.h,
+			},
+			v: Vector{
+				x: -binRect.w,
+				y: 0,
+			},
+		},
+		{
+			p: Vector{
+				x: binRect.p.x,
+				y: binRect.p.y + binRect.h,
+			},
+			v: Vector{
+				x: 0,
+				y: -binRect.h,
+			},
+		},
+	}
 	for i := range g.fieldBalls {
-		bin_bottom := binRect.p.y + binRect.h
-		if g.fieldBalls[i].p.y + g.fieldBalls[i].r > bin_bottom {
-			g.fieldBalls[i].p.y = bin_bottom - g.fieldBalls[i].r
-			g.fieldBalls[i].v.y *= -1 * 0.3
+		for _, line := range lines {
+			n := VectorNormalize(line.v)
+			h := VectorAdd(line.p, VectorMulScalar(n, VectorDot(VectorSub(g.fieldBalls[i].p, line.p), n)))
+			d := VectorSub(g.fieldBalls[i].p, h)
+			dl := VectorLength(d)
+			if dl < g.fieldBalls[i].r {
+				diff := g.fieldBalls[i].r - dl
+				dn := VectorNormalize(d)
+				g.fieldBalls[i].p.Add(VectorMulScalar(dn, diff))
+
+				g.fieldBalls[i].v.Sub(VectorMulScalar(dn, VectorDot(g.fieldBalls[i].v, dn)*1.4))
+			}
 		}
 	}
 	for i := range g.fieldBalls {
-		if g.fieldBalls[i].v.Length() < 0.1 {
+		if g.fieldBalls[i].v.Length() < 0.5 {
 			g.fieldBalls[i].v.x = 0
 			g.fieldBalls[i].v.y = 0
 		}
@@ -277,10 +322,6 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// if (len(g.fieldBalls) >= 1) {
-	// 	yText := fmt.Sprintf("y: %f, length: %f", g.fieldBalls[0].p.y, g.fieldBalls[0].v.Length())
-	// 	ebitenutil.DebugPrint(screen, yText)
-	// }
 	if (len(g.fieldBalls) >= 2) {
 		yText := fmt.Sprintf("length: %f, r1+r2: %f", VectorLength(VectorSub(g.fieldBalls[0].p, g.fieldBalls[1].p)), g.fieldBalls[0].r + g.fieldBalls[1].r)
 		ebitenutil.DebugPrint(screen, yText)
