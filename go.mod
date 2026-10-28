@@ -1,6 +1,6 @@
 module github.com/conao3/go-ebiten-suika
 
-go 1.26.9
+go 1.27.3
 
 require github.com/hajimehoshi/ebiten/v2 v2.10.5
 
